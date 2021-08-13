@@ -864,7 +864,7 @@ void setup()
 
     sprite->clear(TFT_BLACK);
     sprite->setTextColor(TFT_WHITE);
-    sprite->setTextFont(2);
+    sprite->setTextFont(2); // Need to set font size to draw characters
     sprite->setCursor(0,0);
 
     LCDHEIGHT = display->getHeight();
