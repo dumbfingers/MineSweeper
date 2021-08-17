@@ -919,20 +919,23 @@ void loop()
 {
     // loop here so that we can capture button inputs
     Input::getInstance()->loop(0);
-
+    sprite->clear(TFT_BLACK);
+    
     if (game_state == RUNNING)
     {
         process_player_input();
         draw_board();
         draw_cursor();
-        display->commit();
+        if (c_pressed)
+        {
+            setup();
+        }
     }
 
     if (game_state == WON)
     {
         draw_board();
         draw_cursor();
-        display->commit();
         if (c_pressed)
         {
             setup();
@@ -943,10 +946,11 @@ void loop()
     {
         draw_board();
         draw_cursor();
-        display->commit();        
         if (c_pressed)
         {
             setup();
         }
     }
+    display->commit();
+
 }
