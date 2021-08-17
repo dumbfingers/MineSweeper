@@ -20,14 +20,14 @@ boolean c_pressed;
 int LCDHEIGHT;
 int LCDWIDTH;
 
-byte fontx = 3;
-byte fonty = 3;
+byte fontx = 5;
+byte fonty = 5;
 
 const byte FIELD_WIDTH = fontx + 2;
 const byte FIELD_HEIGHT = fonty + 2;
 
-const byte COLUMNS = 12;
-const byte ROWS = 12;
+const byte COLUMNS = 20;
+const byte ROWS = 15;
 const byte BOMB_COUNT = ((COLUMNS + ROWS) / 2) + (ROWS / 2);
 
 const byte WIDTH = COLUMNS + 2;
@@ -522,8 +522,8 @@ void draw_board()
                 FIELD_WIDTH,
                 FIELD_HEIGHT,
                 neutral,
-                0,
-                0,
+                120,
+                64,
                 TFT_GREEN);
         }
         else
@@ -568,8 +568,8 @@ void draw_board()
                     offset_x + FIELD_WIDTH * (i - 1) + 1,
                     offset_y + FIELD_HEIGHT * (j - 1) + 1,
                     flag,
-                    0,
-                    0,
+                    fontx,
+                    fonty,
                     TFT_RED);
             }
 
@@ -608,8 +608,8 @@ void draw_board()
 void draw_cursor()
 {
     sprite->drawRect(
-        cursor.x * FIELD_WIDTH + offset_x - 1,
-        cursor.y * FIELD_HEIGHT + offset_y - 1,
+        (cursor.x - 1) * FIELD_WIDTH + offset_x - 1,
+        (cursor.y - 1) * FIELD_HEIGHT + offset_y - 1,
         FIELD_WIDTH + 2,
         FIELD_HEIGHT + 2,
         TFT_BLUE);
@@ -686,7 +686,7 @@ void process_player_input()
                     }
                 }
                 game_state = LOST;
-                sprite->drawString((String("You lost. :(")), 36, 60);
+                sprite->drawString((String("You lost. :(")), 0, 120);
                 playCancel();
             }
             else
@@ -706,7 +706,7 @@ void process_player_input()
                 if (uncovered_fields == COLUMNS * ROWS - BOMB_COUNT)
                 {
                     game_state = WON;
-                    sprite->drawString(("You won! :)"), 36, 60);
+                    sprite->drawString(("You won! :)"), 0, 120);
                     playOk();
                 }
             }
