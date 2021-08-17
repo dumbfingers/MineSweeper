@@ -43,6 +43,8 @@ byte flag_count;
 
 byte first_field;
 
+boolean NotFirstPress = false;
+
 //-------------------------------------
 // board
 enum field_state
@@ -584,7 +586,7 @@ void draw_board()
                 else
                 {
                     sprite->drawChar(
-                        0x2A,
+                        text[board[i][j].nearby_bombs],
                         offset_x + FIELD_WIDTH * (i - 1) + 1,
                         offset_y + FIELD_HEIGHT * (j - 1) + 1,
                         1);
@@ -646,8 +648,6 @@ void uncover_harmless_neighbours(byte x, byte y)
 
 //------------------------------------------------------------------------------
 // process button events
-boolean NotFirstPress = false;
-
 void process_player_input()
 {
     // uncover a field
