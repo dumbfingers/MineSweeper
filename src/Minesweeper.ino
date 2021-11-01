@@ -8,33 +8,26 @@ Display *display;
 Sprite *sprite;
 
 //-------------------------------------
-
-boolean left_pressed;
-boolean right_pressed;
-boolean up_pressed;
-boolean down_pressed;
 boolean a_pressed;
-boolean b_pressed;
-boolean c_pressed;
 
 int LCDHEIGHT;
 int LCDWIDTH;
 
-byte fontx = 5;
-byte fonty = 5;
+byte fontx = 4;
+byte fonty = 4;
 
-const byte FIELD_WIDTH = fontx + 2;
-const byte FIELD_HEIGHT = fonty + 2;
+const byte FIELD_WIDTH = 4;
+const byte FIELD_HEIGHT = 4;
 
-const byte COLUMNS = 20;
+const byte COLUMNS = 25;
 const byte ROWS = 15;
 const byte BOMB_COUNT = ((COLUMNS + ROWS) / 2) + (ROWS / 2);
 
 const byte WIDTH = COLUMNS + 2;
 const byte HEIGHT = ROWS + 2;
 
-const byte offset_x = 2;
-const byte offset_y = 2;
+const byte offset_x = 1;
+const byte offset_y = 1;
 
 const char text[10] = {' ', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
 
@@ -43,7 +36,7 @@ byte flag_count;
 
 byte first_field;
 
-boolean NotFirstPress = false;
+boolean notFirstPress = false;
 
 //-------------------------------------
 // board
@@ -516,6 +509,7 @@ void draw_board()
     }
     else if (a_pressed)
     {
+        a_pressed = false;
         if (board[cursor.x + 1][cursor.y + 1].state == COVERED)
         {
             sprite->drawBitmap(
@@ -554,10 +548,10 @@ void draw_board()
             if (board[i][j].state == COVERED)
             {
                 sprite->fillRect(
-                    offset_x + FIELD_WIDTH * (i - 1) + 1,
-                    offset_y + FIELD_HEIGHT * (j - 1) + 1,
-                    fontx,
-                    fonty,
+                    offset_x + (1 + FIELD_WIDTH) * (i - 1) + 1,
+                    offset_y + (1 + FIELD_HEIGHT) * (j - 1) + 1,
+                    FIELD_WIDTH,
+                    FIELD_HEIGHT,
                     TFT_LIGHTGREY);
             }
 
@@ -565,8 +559,8 @@ void draw_board()
             {
 
                 sprite->drawBitmap(
-                    offset_x + FIELD_WIDTH * (i - 1) + 1,
-                    offset_y + FIELD_HEIGHT * (j - 1) + 1,
+                    offset_x + (1 + FIELD_WIDTH) * (i - 1) + 1,
+                    offset_y + (1 + FIELD_HEIGHT) * (j - 1) + 1,
                     flag,
                     fontx,
                     fonty,
@@ -579,16 +573,16 @@ void draw_board()
                 {
                     sprite->drawChar(
                         0x2A,
-                        offset_x + FIELD_WIDTH * (i - 1) + 1,
-                        offset_y + FIELD_HEIGHT * (j - 1) + 1,
+                        offset_x + (1 + FIELD_WIDTH) * (i - 1) + 1,
+                        offset_y + (1 + FIELD_HEIGHT) * (j - 1) + 1,
                         1);
                 }
                 else
                 {
                     sprite->drawChar(
                         text[board[i][j].nearby_bombs],
-                        offset_x + FIELD_WIDTH * (i - 1) + 1,
-                        offset_y + FIELD_HEIGHT * (j - 1) + 1,
+                        offset_x + (1 + FIELD_WIDTH) * (i - 1) + 1,
+                        offset_y + (1 + FIELD_HEIGHT) * (j - 1) + 1,
                         1);
                 }
             }
@@ -596,8 +590,8 @@ void draw_board()
     }
     // draw borders
     sprite->drawRect(
-        offset_x - 1,
-        offset_y - 1,
+        offset_x,
+        offset_y,
         LCDWIDTH - 2,
         LCDHEIGHT - 2,
         TFT_CYAN);
@@ -607,11 +601,11 @@ void draw_board()
 // draw the cursor
 void draw_cursor()
 {
-    sprite->drawRect(
-        (cursor.x - 1) * FIELD_WIDTH + offset_x - 1,
-        (cursor.y - 1) * FIELD_HEIGHT + offset_y - 1,
-        FIELD_WIDTH + 2,
-        FIELD_HEIGHT + 2,
+    sprite->fillRect(
+        (cursor.x - 1) * (1 + FIELD_WIDTH) + offset_x,
+        (cursor.y - 1) * (1 + FIELD_HEIGHT) + offset_y,
+        FIELD_WIDTH,
+        FIELD_HEIGHT,
         TFT_BLUE);
 }
 
@@ -650,16 +644,109 @@ void uncover_harmless_neighbours(byte x, byte y)
 // process button events
 void process_player_input()
 {
-    // uncover a field
-    if (a_pressed)
+
+    
+}
+
+// Button Callbacks
+// check button left
+void BTN_LEFT_press()
+{
+    if (cursor.x > 0)
+        cursor.x -= 1;
+    else
+        cursor.x = COLUMNS - 1;
+    playTick();
+    delayMicroseconds(250);
+}
+void BTN_LEFT_release()
+{}
+
+// check button right
+void BTN_RIGHT_press()
+{
+    if (cursor.x < COLUMNS - 1)
+        cursor.x += 1;
+    else
+        cursor.x = 0;
+    playTick();
+    delayMicroseconds(250);
+}
+void BTN_RIGHT_release()
+{}
+
+void BTN_UP_press()
+{
+    if (cursor.y > 0)
+        cursor.y -= 1;
+    else
+        cursor.y = ROWS - 1;
+    playTick();
+    delayMicroseconds(250);
+}
+
+void BTN_UP_release()
+{}
+
+void BTN_DOWN_press()
+{
+    if (cursor.y < ROWS - 1)
+        cursor.y += 1;
+    else
+        cursor.y = 0;
+    playTick();
+    delayMicroseconds(250);
+}
+
+void BTN_DOWN_release()
+{}
+
+// check button B
+void BTN_B_press()
+{
+    // flag and unflag a field
+    if (first_field)
     {
-        NotFirstPress = true;
-        if (board[cursor.x + 1][cursor.y + 1].state == COVERED)
-        {
-            playTick();
-        }
+        first_field = false;
+        place_bombs();
+        compute_bomb_hints();
     }
-    if (!a_pressed && NotFirstPress == true)
+
+    if (board[cursor.x + 1][cursor.y + 1].state == COVERED)
+    {
+        board[cursor.x + 1][cursor.y + 1].state = FLAGGED;
+        flag_count++;
+        playOk();
+    }
+    else if (board[cursor.x + 1][cursor.y + 1].state == FLAGGED)
+    {
+        board[cursor.x + 1][cursor.y + 1].state = COVERED;
+        flag_count--;
+        playOk();
+    }
+    delayMicroseconds(250);
+}
+
+void BTN_B_release()
+{}
+
+// check button A
+void BTN_A_press()
+{
+    a_pressed = true;
+    // uncover a field
+    notFirstPress = true;
+    if (board[cursor.x + 1][cursor.y + 1].state == COVERED)
+    {
+        playTick();
+    }
+    delayMicroseconds(250);
+}
+
+void BTN_A_release()
+{
+    a_pressed = false;
+    if (notFirstPress == true)
     {
         if (first_field)
         {
@@ -712,148 +799,18 @@ void process_player_input()
             }
         }
     }
-
-    // flag and unflag a field
-    if (b_pressed)
-    {
-        if (first_field)
-        {
-            first_field = false;
-            place_bombs();
-            compute_bomb_hints();
-        }
-
-        if (board[cursor.x + 1][cursor.y + 1].state == COVERED)
-        {
-            board[cursor.x + 1][cursor.y + 1].state = FLAGGED;
-            flag_count++;
-            playOk();
-        }
-        else if (board[cursor.x + 1][cursor.y + 1].state == FLAGGED)
-        {
-            board[cursor.x + 1][cursor.y + 1].state = COVERED;
-            flag_count--;
-            playOk();
-        }
-    }
-
-    // go  back to main menu
-    if (c_pressed)
-    {
-        setup();
-    }
-
-    // move cursor
-    if (up_pressed)
-    {
-        if (cursor.y > 0)
-            cursor.y -= 1;
-        else
-            cursor.y = ROWS - 1;
-        playTick();
-    }
-
-    if (down_pressed)
-    {
-        if (cursor.y < ROWS - 1)
-            cursor.y += 1;
-        else
-            cursor.y = 0;
-        playTick();
-    }
-
-    if (left_pressed)
-    {
-        if (cursor.x > 0)
-            cursor.x -= 1;
-        else
-            cursor.x = COLUMNS - 1;
-        playTick();
-    }
-
-    if (right_pressed)
-    {
-        if (cursor.x < COLUMNS - 1)
-            cursor.x += 1;
-        else
-            cursor.x = 0;
-        playTick();
-    }
-}
-
-// Button Callbacks
-// check button left
-void BTN_LEFT_press()
-{
-    left_pressed = true;
-}
-void BTN_LEFT_release()
-{
-    left_pressed = false;
-}
-
-// check button right
-void BTN_RIGHT_press()
-{
-    right_pressed = true;
-}
-void BTN_RIGHT_release()
-{
-    right_pressed = false;
-}
-
-void BTN_UP_press()
-{
-    up_pressed = true;
-}
-
-void BTN_UP_release()
-{
-    up_pressed = false;
-}
-
-void BTN_DOWN_press()
-{
-    down_pressed = true;
-}
-
-void BTN_DOWN_release()
-{
-    down_pressed = false;
-}
-
-// check button B
-void BTN_B_press()
-{
-    b_pressed = true;
-}
-
-void BTN_B_release()
-{
-    b_pressed = false;
-}
-
-// check button A
-void BTN_A_press()
-{
-    a_pressed = true;
-}
-
-void BTN_A_release()
-{
-    a_pressed = false;
 }
 
 // check button C
 void BTN_C_press()
 {
-    c_pressed = true;
+    // go back to main menu
+    setup();
+    delayMicroseconds(250);
 }
 
 void BTN_C_release()
-{
-    c_pressed = false;
-}
+{}
 
 //------------------------------------------------------------------------------
 void setup()
@@ -909,8 +866,7 @@ void setup()
     flag_count = 0;
     first_field = true;
 
-    NotFirstPress = false;
-
+    notFirstPress = false;
 }
 
 //------------------------------------------------------------------------------
@@ -926,31 +882,18 @@ void loop()
         process_player_input();
         draw_board();
         draw_cursor();
-        if (c_pressed)
-        {
-            setup();
-        }
     }
 
     if (game_state == WON)
     {
         draw_board();
         draw_cursor();
-        if (c_pressed)
-        {
-            setup();
-        }
     }
 
     if (game_state == LOST)
     {
         draw_board();
         draw_cursor();
-        if (c_pressed)
-        {
-            setup();
-        }
     }
     display->commit();
-
 }
