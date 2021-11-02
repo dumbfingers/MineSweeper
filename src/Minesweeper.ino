@@ -712,15 +712,15 @@ void BTN_B_press()
         compute_bomb_hints();
     }
 
-    if (board[cursor.x + 1][cursor.y + 1].state == COVERED)
+    if (board[cursor.x][cursor.y].state == COVERED)
     {
-        board[cursor.x + 1][cursor.y + 1].state = FLAGGED;
+        board[cursor.x][cursor.y].state = FLAGGED;
         flag_count++;
         playOk();
     }
-    else if (board[cursor.x + 1][cursor.y + 1].state == FLAGGED)
+    else if (board[cursor.x][cursor.y].state == FLAGGED)
     {
-        board[cursor.x + 1][cursor.y + 1].state = COVERED;
+        board[cursor.x][cursor.y].state = COVERED;
         flag_count--;
         playOk();
     }
@@ -736,7 +736,7 @@ void BTN_A_press()
     a_pressed = true;
     // uncover a field
     notFirstPress = true;
-    if (board[cursor.x + 1][cursor.y + 1].state == COVERED)
+    if (board[cursor.x][cursor.y].state == COVERED)
     {
         playTick();
     }
@@ -755,11 +755,11 @@ void BTN_A_release()
             compute_bomb_hints();
         }
 
-        if (board[cursor.x + 1][cursor.y + 1].state == COVERED)
+        if (board[cursor.x][cursor.y].state == COVERED)
         {
 
             // game is lost, uncover all bombs
-            if (board[cursor.x + 1][cursor.y + 1].is_bomb)
+            if (board[cursor.x][cursor.y].is_bomb)
             {
 
                 for (byte x = 1; x < WIDTH - 1; x++)
@@ -780,13 +780,13 @@ void BTN_A_release()
             {
                 playOk();
 
-                if (board[cursor.x + 1][cursor.y + 1].nearby_bombs == 0)
+                if (board[cursor.x][cursor.y].nearby_bombs == 0)
                 {
-                    uncover_harmless_neighbours(cursor.x + 1, cursor.y + 1);
+                    uncover_harmless_neighbours(cursor.x, cursor.y);
                 }
                 else
                 {
-                    board[cursor.x + 1][cursor.y + 1].state = UNCOVERED;
+                    board[cursor.x][cursor.y].state = UNCOVERED;
                     uncovered_fields++;
                 }
 
