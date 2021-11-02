@@ -504,13 +504,13 @@ void draw_board()
         sprite->drawChar(
             0x01,
             FIELD_WIDTH,
-            FIELD_HEIGHT,
-            1);
+            FIELD_HEIGHT
+            );
     }
     else if (a_pressed)
     {
         a_pressed = false;
-        if (board[cursor.x + 1][cursor.y + 1].state == COVERED)
+        if (board[cursor.x][cursor.y].state == COVERED)
         {
             sprite->drawBitmap(
                 FIELD_WIDTH,
@@ -525,8 +525,8 @@ void draw_board()
             sprite->drawChar(
                 0x02,                
                 FIELD_WIDTH,
-                FIELD_HEIGHT,
-                1);
+                FIELD_HEIGHT
+                );
         }
     }
     else
@@ -534,8 +534,8 @@ void draw_board()
         sprite->drawChar(
             0x02,            
             FIELD_WIDTH,
-            FIELD_HEIGHT,
-            1);
+            FIELD_HEIGHT
+            );
     }
 
     // draw mine fields
@@ -574,16 +574,16 @@ void draw_board()
                     sprite->drawChar(
                         0x2A,
                         offset_x + (1 + FIELD_WIDTH) * (i - 1) + 1,
-                        offset_y + (1 + FIELD_HEIGHT) * (j - 1) + 1,
-                        1);
+                        offset_y + (1 + FIELD_HEIGHT) * (j - 1) + 1
+                    );
                 }
                 else
                 {
-                    sprite->drawChar(
-                        text[board[i][j].nearby_bombs],
+                    sprite->drawString(
+                        String(text[board[i][j].nearby_bombs]),
                         offset_x + (1 + FIELD_WIDTH) * (i - 1) + 1,
-                        offset_y + (1 + FIELD_HEIGHT) * (j - 1) + 1,
-                        1);
+                        offset_y + (1 + FIELD_HEIGHT) * (j - 1) + 1
+                    );
                 }
             }
         }
@@ -665,7 +665,7 @@ void BTN_LEFT_release()
 // check button right
 void BTN_RIGHT_press()
 {
-    if (cursor.x < COLUMNS - 1)
+    if (cursor.x < COLUMNS)
         cursor.x += 1;
     else
         cursor.x = 0;
@@ -690,7 +690,7 @@ void BTN_UP_release()
 
 void BTN_DOWN_press()
 {
-    if (cursor.y < ROWS - 1)
+    if (cursor.y < ROWS)
         cursor.y += 1;
     else
         cursor.y = 0;
@@ -821,7 +821,8 @@ void setup()
 
     sprite->clear(TFT_BLACK);
     sprite->setTextColor(TFT_WHITE);
-    sprite->setTextFont(2); // Need to set font size to draw characters
+    sprite->setTextSize(1);
+    sprite->setTextFont(1); // Need to set font size to draw characters
     sprite->setCursor(0,0);
 
     LCDHEIGHT = display->getHeight();
