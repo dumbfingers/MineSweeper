@@ -2,16 +2,25 @@
 #include <CircuitOS.h>
 #include <Nibble.h>
 #include "GameState.h"
+#include "MInefield.h"
+#include "Cursor.h"
+#include "Dialog.h"
+#include "Sound.h"
+#include "Graphics.h"
 
 Display *display;
 Sprite *sprite;
 
 bool confirm;
 bool shouldShowMenu;
+bool buttonAPressed;
 
-const String TOTAL_MINES = "10";
+int TOTAL_MINES = 10;
+int revealedCount = 0;
 
 GameState gameState;
+Minefield board[100][100];
+Cursor cursor;
 
 void setup()
 {
@@ -101,21 +110,19 @@ void initBoard()
                 mine_dimen,
                 TFT_DARKGREY);
 
-            //draw shadow on right and bottom
+            // draw shadow on right and bottom
             sprite->drawLine(
                 start_x + gap + mine_dimen + (mine_dimen + gap * 2) * (i - 1),
                 start_y + gap + (mine_dimen + gap * 2) * (j - 1),
                 start_x + gap + mine_dimen + (mine_dimen + gap * 2) * (i - 1),
                 start_y + gap + mine_dimen + (mine_dimen + gap * 2) * (j - 1),
-                TFT_BLACK
-            );
+                TFT_BLACK);
             sprite->drawLine(
                 start_x + gap + (mine_dimen + gap * 2) * (i - 1),
                 start_y + gap + mine_dimen + (mine_dimen + gap * 2) * (j - 1),
                 start_x + gap + mine_dimen + (mine_dimen + gap * 2) * (i - 1),
                 start_y + gap + mine_dimen + (mine_dimen + gap * 2) * (j - 1),
-                TFT_BLACK
-            );
+                TFT_BLACK);
         }
     }
 
@@ -123,90 +130,237 @@ void initBoard()
     // for (int i = 1; i <= 8; i++) {
     //     drawDigit(start_x + (i - 1) * 10, start_y, i);
     // }
-
 }
 
-// draw digits within 6x6 square
-void drawDigit(int x, int y, int digit)
-{   
-    int gap = 2;
-    x = x + gap;
-    y = y + gap;
-
-    switch (digit)
+void placeMines()
+{
+    int i = 0;
+    int x = 0;
+    int y = 0;
+    while (i < TOTAL_MINES)
     {
-    case 1:
-        sprite->drawLine(x + 2, y + 2, x + 3, y + 1, TFT_SKYBLUE);
-        sprite->drawLine(x + 3, y + 1, x + 3, y + 5, TFT_SKYBLUE);
-        sprite->drawLine(x + 2, y + 5, x + 4, y + 5, TFT_SKYBLUE);
-        /* code */
-        break;
-    case 2:
-        sprite->drawLine(x + 2, y + 2, x + 3, y + 1, TFT_GREEN);
-        sprite->drawLine(x + 3, y + 1, x + 4, y + 1, TFT_GREEN);
-        sprite->drawLine(x + 4, y + 1, x + 5, y + 2, TFT_GREEN);
-        sprite->drawLine(x + 5, y + 2, x + 2, y + 6, TFT_GREEN);
-        sprite->drawLine(x + 2, y + 6, x + 5, y + 6, TFT_GREEN);
-        break;
-    case 3:
-        sprite->drawLine(x + 2, y + 2, x + 2, y + 1, TFT_RED);
-        sprite->drawLine(x + 2, y + 1, x + 4, y + 1, TFT_RED);
-        sprite->drawLine(x + 4, y + 1, x + 5, y + 2, TFT_RED);
-        sprite->drawLine(x + 5, y + 2, x + 4, y + 3, TFT_RED);
-        sprite->drawLine(x + 4, y + 3, x + 5, y + 4, TFT_RED);
-        sprite->drawLine(x + 5, y + 4, x + 5, y + 5, TFT_RED);
-        sprite->drawLine(x + 5, y + 5, x + 4, y + 6, TFT_RED);
-        sprite->drawLine(x + 4, y + 6, x + 2, y + 6, TFT_RED);
-        sprite->drawLine(x + 2, y + 6, x + 2, y + 5, TFT_RED);
-        break;
-    case 4:
-        sprite->drawLine(x + 4, y + 1, x + 1, y + 4, TFT_BLUE);
-        sprite->drawLine(x + 1, y + 4, x + 5, y + 4, TFT_BLUE);
-        sprite->drawLine(x + 4, y + 1, x + 4, y + 6, TFT_BLUE);
-        break;
-    case 5:
-        sprite->drawLine(x + 5, y + 2, x + 5, y + 1, TFT_BROWN);
-        sprite->drawLine(x + 5, y + 1, x + 2, y + 1, TFT_BROWN);
-        sprite->drawLine(x + 2, y + 1, x + 2, y + 3, TFT_BROWN);
-        sprite->drawLine(x + 2, y + 3, x + 4, y + 3, TFT_BROWN);
-        sprite->drawLine(x + 4, y + 3, x + 5, y + 4, TFT_BROWN);
-        sprite->drawLine(x + 5, y + 4, x + 5, y + 5, TFT_BROWN);
-        sprite->drawLine(x + 5, y + 5, x + 4, y + 6, TFT_BROWN);
-        sprite->drawLine(x + 4, y + 6, x + 2, y + 6, TFT_BROWN);
+        x = random(1, 10);
+        y = random(1, 10);
 
-        break;
-    case 6:
-        sprite->drawLine(x + 5, y + 2, x + 4, y + 1, TFT_CYAN);
-        sprite->drawLine(x + 4, y + 1, x + 3, y + 1, TFT_CYAN);
-        sprite->drawLine(x + 3, y + 1, x + 2, y + 2, TFT_CYAN);
-        sprite->drawLine(x + 2, y + 2, x + 2, y + 5, TFT_CYAN);
-        sprite->drawLine(x + 2, y + 5, x + 3, y + 6, TFT_CYAN);
-        sprite->drawLine(x + 3, y + 6, x + 4, y + 6, TFT_CYAN);
-        sprite->drawLine(x + 4, y + 6, x + 5, y + 5, TFT_CYAN);
-        sprite->drawLine(x + 5, y + 5, x + 5, y + 4, TFT_CYAN);
-        sprite->drawLine(x + 5, y + 4, x + 2, y + 3, TFT_CYAN);
-        break;
-    case 7:
-        sprite->drawLine(x + 2, y + 2, x + 2, y + 1, TFT_BLACK);
-        sprite->drawLine(x + 2, y + 1, x + 5, y + 1, TFT_BLACK);
-        sprite->drawLine(x + 5, y + 1, x + 3, y + 6, TFT_BLACK);
-
-        break;
-    case 8:
-        sprite->drawLine(x + 2, y + 2, x + 1, y + 1, TFT_SILVER);
-        sprite->drawLine(x + 3, y + 1, x + 4, y + 1, TFT_SILVER);
-        sprite->drawLine(x + 4, y + 1, x + 5, y + 2, TFT_SILVER);
-        sprite->drawLine(x + 5, y + 2, x + 4, y + 3, TFT_SILVER);
-        sprite->drawLine(x + 4, y + 3, x + 5, y + 4, TFT_SILVER);
-        sprite->drawLine(x + 5, y + 4, x + 5, y + 5, TFT_SILVER);
-        sprite->drawLine(x + 5, y + 5, x + 4, y + 6, TFT_SILVER);
-        sprite->drawLine(x + 4, y + 6, x + 3, y + 6, TFT_SILVER);
-        sprite->drawLine(x + 3, y + 6, x + 2, y + 5, TFT_SILVER);
-        sprite->drawLine(x + 2, y + 5, x + 2, y + 4, TFT_SILVER);
-        sprite->drawLine(x + 2, y + 4, x + 3, y + 3, TFT_SILVER);
-        sprite->drawLine(x + 3, y + 3, x + 2, y + 2, TFT_SILVER);
-        break;
-    default:
-        break;
+        if (!board[x][y].isMine &&
+            !(x == cursor.x + 1 && y == cursor.y + 1))
+        {
+            board[x][y].isMine = true;
+            i++;
+        }
     }
 }
+
+void updateHint()
+{
+    for (int i = 1; i < 10; i++)
+    {
+        for (int j = 1; j < 10; j++)
+        {
+            if (!board[i][j].isMine)
+            {
+                board[i][j].nearByMines = getNearByMineCount(i, j);
+            }
+        }
+    }
+}
+
+int getNearByMineCount(int x, int y)
+{
+    int count = 0;
+
+    if (board[x][y - 1].isMine)
+        count++;
+    if (board[x][y + 1].isMine)
+        count++;
+
+    if (board[x - 1][y - 1].isMine)
+        count++;
+    if (board[x - 1][y].isMine)
+        count++;
+    if (board[x - 1][y + 1].isMine)
+        count++;
+
+    if (board[x + 1][y - 1].isMine)
+        count++;
+    if (board[x + 1][y].isMine)
+        count++;
+    if (board[x + 1][y + 1].isMine)
+        count++;
+
+    return count;
+}
+
+void updateBoard()
+{
+    if (gameState == LOST)
+    {
+        // show dialog to restart
+        showDialog("You Lost", "Restart", "Cancel");
+    }
+    else if (buttonAPressed)
+    {
+        buttonAPressed = false;
+    }
+}
+
+void revealNeighbours(int x, int y)
+{
+    if (x > 0 && y > 0 && x <= 10 && y <= 10)
+    {
+        Minefield location = board[x][y];
+        if (location.state == COVERED)
+        {
+            if (!location.isMine)
+            {
+                location.state = REVEALED;
+                revealedCount++;
+
+                if (location.nearByMines == 0)
+                {
+                    revealNeighbours(x + 1, y + 1);
+                    revealNeighbours(x + 1, y);
+                    revealNeighbours(x + 1, y - 1);
+
+                    revealNeighbours(x, y + 1);
+                    revealNeighbours(x, y - 1);
+
+                    revealNeighbours(x - 1, y + 1);
+                    revealNeighbours(x - 1, y);
+                    revealNeighbours(x - 1, y - 1);
+                }
+            }
+        }
+    }
+}
+
+#pragma region Buttons
+
+void BTN_A_press()
+{
+    Piezo.tone(220, 50);
+    confirm = true;
+}
+
+void BTN_A_release()
+{
+    if (gameState == LOST)
+    {
+        return;
+    }
+    buttonAPressed = false;
+    int x = cursor.x;
+    int y = cursor.y;
+    buttonAPressed = false;
+    Minefield location = board[cursor.x][cursor.y];
+    if (location.state == COVERED)
+    {
+        if (location.isMine)
+        {
+            gameState = LOST;
+            // reveal all mines
+            for (int i = 1; i < 10; i++)
+            {
+                for (int j = 1; j < 10; j++)
+                {
+                    if (board[i][j].isMine)
+                    {
+                        board[i][j].state = REVEALED;
+                    }
+                }
+            }
+            // TODO:
+            // play lost sound
+            playCancel();
+            // show dialog
+            showDialog("You Lost", "Restart", "Cancel");
+        }
+        else
+        {
+            playOk();
+            if (location.nearByMines == 0)
+            {
+                revealNeighbours(cursor.x, cursor.y);
+            } else
+            {
+                location.state = REVEALED;
+                revealedCount++;
+            }
+
+            if (revealedCount == 100 - TOTAL_MINES)
+            {
+                gameState = WON;
+                playWon();
+                // TODO: more options after winning the game
+                showDialog("You WIN!!!", "OK", "Cancel");
+            }
+            
+            
+        }
+    }
+    
+    
+}
+
+void BTN_B_press()
+{
+    if (Piezo.isMuted())
+    {
+        Piezo.setMute(false);
+    }
+    else
+    {
+        Piezo.setMute(true);
+    }
+}
+
+void BTN_C_press()
+{
+    shouldShowMenu = true;
+}
+
+void BTN_C_release()
+{
+    shouldShowMenu = false;
+}
+
+void BTN_DOWN_press()
+{
+}
+
+void BTN_UP_press()
+{
+}
+
+void BTN_UP_release()
+{
+}
+
+void BTN_UP_held_300ms()
+{
+}
+
+void BTN_RIGHT_press()
+{
+}
+
+void BTN_RIGHT_release()
+{
+}
+
+void BTN_RIGHT_held_300ms()
+{
+} 
+
+void BTN_LEFT_press()
+{
+}
+
+void BTN_LEFT_release()
+{
+}
+
+void BTN_LEFT_held_300ms()
+{
+}
+#pragma endregion
