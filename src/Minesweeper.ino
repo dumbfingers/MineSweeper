@@ -100,13 +100,30 @@ void initBoard()
                 mine_dimen,
                 mine_dimen,
                 TFT_DARKGREY);
+
+            //draw shadow on right and bottom
+            sprite->drawLine(
+                start_x + gap + mine_dimen + (mine_dimen + gap * 2) * (i - 1),
+                start_y + gap + (mine_dimen + gap * 2) * (j - 1),
+                start_x + gap + mine_dimen + (mine_dimen + gap * 2) * (i - 1),
+                start_y + gap + mine_dimen + (mine_dimen + gap * 2) * (j - 1),
+                TFT_BLACK
+            );
+            sprite->drawLine(
+                start_x + gap + (mine_dimen + gap * 2) * (i - 1),
+                start_y + gap + mine_dimen + (mine_dimen + gap * 2) * (j - 1),
+                start_x + gap + mine_dimen + (mine_dimen + gap * 2) * (i - 1),
+                start_y + gap + mine_dimen + (mine_dimen + gap * 2) * (j - 1),
+                TFT_BLACK
+            );
         }
     }
 
     // TEST
-    for (int i = 1; i <= 8; i++) {
-        drawDigit(start_x + (i - 1) * 10, start_y, i);
-    }
+    // for (int i = 1; i <= 8; i++) {
+    //     drawDigit(start_x + (i - 1) * 10, start_y, i);
+    // }
+
 }
 
 // draw digits within 6x6 square
