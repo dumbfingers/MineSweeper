@@ -1,10 +1,11 @@
 #include "Graphics.h"
 
-Sprite *sprite;
 
 // draw digits within 6x6 square
 void drawDigit(int x, int y, int digit)
 {
+    extern Sprite *sprite;
+    
     int gap = 2;
     x = x + gap;
     y = y + gap;

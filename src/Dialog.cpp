@@ -1,7 +1,9 @@
 #include "Dialog.h"
+#include <Display/Display.h>
 
 void showDialog(String message, String positive, String negative)
 {
+    extern Sprite* sprite;
     sprite->fillRect(20, 20, 88, 108, TFT_LIGHTGREY);
     sprite->drawRect(20, 20, 88, 108, TFT_BLACK);
     sprite->setCursor(26, 34);
