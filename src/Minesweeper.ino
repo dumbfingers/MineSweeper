@@ -2,7 +2,7 @@
 #include <CircuitOS.h>
 #include <Nibble.h>
 #include "GameState.h"
-#include "MInefield.h"
+#include "Minefield.h"
 #include "Cursor.h"
 #include "Dialog.h"
 #include "Sound.h"
@@ -15,11 +15,12 @@ bool confirm;
 bool shouldShowMenu;
 bool buttonAPressed;
 
+const int BOARD_SIZE = 10;
 int TOTAL_MINES = 10;
 int revealedCount = 0;
 
 GameState gameState;
-Minefield board[100][100];
+Minefield board[BOARD_SIZE + 2][BOARD_SIZE + 2];
 Cursor cursor;
 
 void setup()
@@ -28,16 +29,11 @@ void setup()
     display = Nibble.getDisplay();
     sprite = display->getBaseSprite();
     Input::getInstance()->setBtnPressCallback(BTN_UP, BTN_UP_press);
-    Input::getInstance()->setBtnReleaseCallback(BTN_UP, BTN_UP_release);
-    Input::getInstance()->setButtonHeldCallback(BTN_UP, 300, BTN_UP_held_300ms);
     Input::getInstance()->setBtnPressCallback(BTN_RIGHT, BTN_RIGHT_press);
-    Input::getInstance()->setBtnReleaseCallback(BTN_RIGHT, BTN_RIGHT_release);
-    Input::getInstance()->setButtonHeldCallback(BTN_RIGHT, 300, BTN_RIGHT_held_300ms);
     Input::getInstance()->setBtnPressCallback(BTN_LEFT, BTN_LEFT_press);
-    Input::getInstance()->setBtnReleaseCallback(BTN_LEFT, BTN_LEFT_release);
-    Input::getInstance()->setButtonHeldCallback(BTN_LEFT, 300, BTN_LEFT_held_300ms);
     Input::getInstance()->setBtnPressCallback(BTN_DOWN, BTN_DOWN_press);
     Input::getInstance()->setBtnPressCallback(BTN_A, BTN_A_press);
+    Input::getInstance()->setBtnReleaseCallback(BTN_A, BTN_A_release);
     Input::getInstance()->setBtnPressCallback(BTN_B, BTN_B_press);
     Input::getInstance()->setBtnPressCallback(BTN_C, BTN_C_press);
     Input::getInstance()->setBtnReleaseCallback(BTN_C, BTN_C_release);
@@ -45,14 +41,29 @@ void setup()
     sprite->setTextSize(1);
     sprite->setTextFont(2);
     sprite->setTextColor(TFT_BLACK);
-    sprite->clear(TFT_BLACK);
 
-    initBoard();
+    newGame();
 }
 
 void loop()
 {
     Input::getInstance()->loop(0);
+
+    draw();
+}
+
+void draw()
+{
+    sprite->clear(TFT_BLACK);
+    drawBoard();
+    if (gameState == LOST)
+    {
+        showDialog("You Lost", "Restart", "C:Menu");
+    }
+    else if (gameState == WON)
+    {
+        showDialog("You WIN!!!", "OK", "C:Menu");
+    }
 
     if (shouldShowMenu)
     {
@@ -62,74 +73,105 @@ void loop()
     display->commit();
 }
 
-void showMenu()
+void newGame()
 {
-    sprite->fillRect(20, 20, 88, 108, TFT_LIGHTGREY);
-    sprite->drawRect(20, 20, 88, 108, TFT_BLACK);
-    sprite->setCursor(26, 34);
-    sprite->print("Wanna quit?");
-    sprite->fillRect(38, 72, 52, 20, TFT_DARKGREY);
-    sprite->drawRect(38, 72, 52, 20, TFT_BLACK);
-    sprite->setCursor(48, 72);
-    sprite->print("YES");
-    sprite->fillRect(38, 98, 52, 20, TFT_DARKGREY);
-    sprite->drawRect(38, 98, 52, 20, TFT_BLACK);
-    sprite->setCursor(48, 98);
-    sprite->print("NO");
+    gameState = RUNNING;
+    revealedCount = 0;
+    for (int i = 0; i < BOARD_SIZE + 2; i++)
+    {
+        for (int j = 0; j < BOARD_SIZE + 2; j++)
+        {
+            board[i][j].isMine = false;
+            board[i][j].nearByMines = 0;
+            board[i][j].state = COVERED;
+        }
+    }
+    cursor.x = BOARD_SIZE / 2;
+    cursor.y = BOARD_SIZE / 2;
+    placeMines();
+    updateHint();
 }
 
-void initBoard()
+void showMenu()
+{
+    sprite->fillRect(10, 30, 108, 68, TFT_LIGHTGREY);
+    sprite->drawRect(10, 30, 108, 68, TFT_BLACK);
+    sprite->setCursor(20, 40);
+    sprite->print("MineSweeper");
+    sprite->setCursor(20, 60);
+    sprite->print("A: Reveal/New");
+    sprite->setCursor(20, 75);
+    sprite->print("B: Flag/Unflag");
+}
+
+void drawBoard()
 {
     // Top board: mines count and timer
     sprite->fillRect(0, 0, 128, 20, TFT_LIGHTGREY);
     sprite->drawLine(0, 20, 128, 20, TFT_DARKGREY);
 
-    sprite->setCursor(14, 4);
-    sprite->print(TOTAL_MINES);
-    sprite->setCursor(80, 4);
-    sprite->print("0");
+    int flaggedCount = 0;
+    for (int i = 1; i <= BOARD_SIZE; i++)
+        for (int j = 1; j <= BOARD_SIZE; j++)
+            if (board[i][j].state == FLAGGED) flaggedCount++;
 
-    // Main board: draw mines, from (14, 24) to (114, 24)
-    // board = 100 x 100 px
-    // each mine is 6x6, with 2px gap on top, bot, left and right
+    sprite->setCursor(14, 4);
+    sprite->print(TOTAL_MINES - flaggedCount);
+    sprite->setCursor(80, 4);
+    sprite->print("0"); // TODO: Timer
+
+    // Main board: 128x108 space
     sprite->fillRect(0, 20, 128, 108, TFT_LIGHTGREY);
 
     int start_x = 14;
     int start_y = 24;
+    int cell_size = 10;
     int mine_dimen = 6;
     int gap = 2;
 
-    for (int i = 1; i <= 10; i++)
+    for (int i = 1; i <= BOARD_SIZE; i++)
     {
-        for (int j = 1; j <= 10; j++)
+        for (int j = 1; j <= BOARD_SIZE; j++)
         {
-            sprite->fillRect(
-                start_x + gap + (mine_dimen + gap * 2) * (i - 1),
-                start_y + gap + (mine_dimen + gap * 2) * (j - 1),
-                mine_dimen,
-                mine_dimen,
-                TFT_DARKGREY);
+            int x = start_x + (i - 1) * cell_size;
+            int y = start_y + (j - 1) * cell_size;
 
-            // draw shadow on right and bottom
-            sprite->drawLine(
-                start_x + gap + mine_dimen + (mine_dimen + gap * 2) * (i - 1),
-                start_y + gap + (mine_dimen + gap * 2) * (j - 1),
-                start_x + gap + mine_dimen + (mine_dimen + gap * 2) * (i - 1),
-                start_y + gap + mine_dimen + (mine_dimen + gap * 2) * (j - 1),
-                TFT_BLACK);
-            sprite->drawLine(
-                start_x + gap + (mine_dimen + gap * 2) * (i - 1),
-                start_y + gap + mine_dimen + (mine_dimen + gap * 2) * (j - 1),
-                start_x + gap + mine_dimen + (mine_dimen + gap * 2) * (i - 1),
-                start_y + gap + mine_dimen + (mine_dimen + gap * 2) * (j - 1),
-                TFT_BLACK);
+            if (board[i][j].state == REVEALED)
+            {
+                if (board[i][j].isMine)
+                {
+                    sprite->fillCircle(x + 5, y + 5, 3, TFT_BLACK);
+                }
+                else if (board[i][j].nearByMines > 0)
+                {
+                    drawDigit(x, y, board[i][j].nearByMines);
+                }
+            }
+            else
+            {
+                // Covered or Flagged
+                sprite->fillRect(x + 1, y + 1, cell_size - 2, cell_size - 2, TFT_DARKGREY);
+                if (board[i][j].state == FLAGGED)
+                {
+                    sprite->fillTriangle(x + 3, y + 2, x + 3, y + 5, x + 7, y + 3.5, TFT_RED);
+                    sprite->drawLine(x + 3, y + 2, x + 3, y + 8, TFT_BLACK);
+                }
+
+                // Draw shadow for 3D effect
+                sprite->drawLine(x + 9, y, x + 9, y + 9, TFT_BLACK);
+                sprite->drawLine(x, y + 9, x + 9, y + 9, TFT_BLACK);
+                sprite->drawLine(x, y, x + 9, y, TFT_WHITE);
+                sprite->drawLine(x, y, x, y + 9, TFT_WHITE);
+            }
+
+            // Draw cursor
+            if (cursor.x == i && cursor.y == j)
+            {
+                sprite->drawRect(x, y, cell_size, cell_size, TFT_YELLOW);
+                sprite->drawRect(x + 1, y + 1, cell_size - 2, cell_size - 2, TFT_YELLOW);
+            }
         }
     }
-
-    // TEST
-    // for (int i = 1; i <= 8; i++) {
-    //     drawDigit(start_x + (i - 1) * 10, start_y, i);
-    // }
 }
 
 void placeMines()
@@ -139,11 +181,11 @@ void placeMines()
     int y = 0;
     while (i < TOTAL_MINES)
     {
-        x = random(1, 10);
-        y = random(1, 10);
+        x = random(1, BOARD_SIZE + 1);
+        y = random(1, BOARD_SIZE + 1);
 
         if (!board[x][y].isMine &&
-            !(x == cursor.x + 1 && y == cursor.y + 1))
+            !(x == cursor.x && y == cursor.y))
         {
             board[x][y].isMine = true;
             i++;
@@ -153,9 +195,9 @@ void placeMines()
 
 void updateHint()
 {
-    for (int i = 1; i < 10; i++)
+    for (int i = 1; i <= BOARD_SIZE; i++)
     {
-        for (int j = 1; j < 10; j++)
+        for (int j = 1; j <= BOARD_SIZE; j++)
         {
             if (!board[i][j].isMine)
             {
@@ -206,28 +248,22 @@ void updateBoard()
 
 void revealNeighbours(int x, int y)
 {
-    if (x > 0 && y > 0 && x <= 10 && y <= 10)
+    if (x > 0 && y > 0 && x <= BOARD_SIZE && y <= BOARD_SIZE)
     {
-        Minefield location = board[x][y];
-        if (location.state == COVERED)
+        if (board[x][y].state == COVERED && !board[x][y].isMine)
         {
-            if (!location.isMine)
+            board[x][y].state = REVEALED;
+            revealedCount++;
+
+            if (board[x][y].nearByMines == 0)
             {
-                location.state = REVEALED;
-                revealedCount++;
-
-                if (location.nearByMines == 0)
+                for (int i = -1; i <= 1; i++)
                 {
-                    revealNeighbours(x + 1, y + 1);
-                    revealNeighbours(x + 1, y);
-                    revealNeighbours(x + 1, y - 1);
-
-                    revealNeighbours(x, y + 1);
-                    revealNeighbours(x, y - 1);
-
-                    revealNeighbours(x - 1, y + 1);
-                    revealNeighbours(x - 1, y);
-                    revealNeighbours(x - 1, y - 1);
+                    for (int j = -1; j <= 1; j++)
+                    {
+                        if (i == 0 && j == 0) continue;
+                        revealNeighbours(x + i, y + j);
+                    }
                 }
             }
         }
@@ -244,24 +280,21 @@ void BTN_A_press()
 
 void BTN_A_release()
 {
-    if (gameState == LOST)
+    if (gameState != RUNNING)
     {
+        newGame();
         return;
     }
-    buttonAPressed = false;
-    int x = cursor.x;
-    int y = cursor.y;
-    buttonAPressed = false;
-    Minefield location = board[cursor.x][cursor.y];
-    if (location.state == COVERED)
+
+    if (board[cursor.x][cursor.y].state == COVERED)
     {
-        if (location.isMine)
+        if (board[cursor.x][cursor.y].isMine)
         {
             gameState = LOST;
             // reveal all mines
-            for (int i = 1; i < 10; i++)
+            for (int i = 1; i <= BOARD_SIZE; i++)
             {
-                for (int j = 1; j < 10; j++)
+                for (int j = 1; j <= BOARD_SIZE; j++)
                 {
                     if (board[i][j].isMine)
                     {
@@ -269,48 +302,43 @@ void BTN_A_release()
                     }
                 }
             }
-            // TODO:
-            // play lost sound
             playCancel();
-            // show dialog
-            showDialog("You Lost", "Restart", "Cancel");
         }
         else
         {
             playOk();
-            if (location.nearByMines == 0)
+            if (board[cursor.x][cursor.y].nearByMines == 0)
             {
                 revealNeighbours(cursor.x, cursor.y);
-            } else
+            }
+            else
             {
-                location.state = REVEALED;
+                board[cursor.x][cursor.y].state = REVEALED;
                 revealedCount++;
             }
 
-            if (revealedCount == 100 - TOTAL_MINES)
+            if (revealedCount == BOARD_SIZE * BOARD_SIZE - TOTAL_MINES)
             {
                 gameState = WON;
                 playWon();
-                // TODO: more options after winning the game
-                showDialog("You WIN!!!", "OK", "Cancel");
             }
-            
-            
         }
     }
-    
-    
 }
 
 void BTN_B_press()
 {
-    if (Piezo.isMuted())
+    if (gameState != RUNNING) return;
+
+    if (board[cursor.x][cursor.y].state == COVERED)
     {
-        Piezo.setMute(false);
+        board[cursor.x][cursor.y].state = FLAGGED;
+        playTick();
     }
-    else
+    else if (board[cursor.x][cursor.y].state == FLAGGED)
     {
-        Piezo.setMute(true);
+        board[cursor.x][cursor.y].state = COVERED;
+        playTick();
     }
 }
 
@@ -326,41 +354,25 @@ void BTN_C_release()
 
 void BTN_DOWN_press()
 {
+    if (gameState != RUNNING) return;
+    if (cursor.y < BOARD_SIZE) cursor.y++;
 }
 
 void BTN_UP_press()
 {
-}
-
-void BTN_UP_release()
-{
-}
-
-void BTN_UP_held_300ms()
-{
+    if (gameState != RUNNING) return;
+    if (cursor.y > 1) cursor.y--;
 }
 
 void BTN_RIGHT_press()
 {
+    if (gameState != RUNNING) return;
+    if (cursor.x < BOARD_SIZE) cursor.x++;
 }
-
-void BTN_RIGHT_release()
-{
-}
-
-void BTN_RIGHT_held_300ms()
-{
-} 
 
 void BTN_LEFT_press()
 {
-}
-
-void BTN_LEFT_release()
-{
-}
-
-void BTN_LEFT_held_300ms()
-{
+    if (gameState != RUNNING) return;
+    if (cursor.x > 1) cursor.x--;
 }
 #pragma endregion
