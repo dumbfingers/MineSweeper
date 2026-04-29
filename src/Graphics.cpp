@@ -13,10 +13,9 @@ void drawDigit(int x, int y, int digit)
     switch (digit)
     {
     case 1:
-        sprite->drawLine(x + 2, y + 2, x + 3, y + 1, TFT_SKYBLUE);
-        sprite->drawLine(x + 3, y + 1, x + 3, y + 5, TFT_SKYBLUE);
-        sprite->drawLine(x + 2, y + 5, x + 4, y + 5, TFT_SKYBLUE);
-        /* code */
+        sprite->drawLine(x + 2, y + 2, x + 3, y + 1, TFT_BLUE);
+        sprite->drawLine(x + 3, y + 1, x + 3, y + 5, TFT_BLUE);
+        sprite->drawLine(x + 2, y + 5, x + 4, y + 5, TFT_BLUE);
         break;
     case 2:
         sprite->drawLine(x + 2, y + 2, x + 3, y + 1, TFT_GREEN);

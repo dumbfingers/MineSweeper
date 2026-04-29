@@ -12,7 +12,11 @@ void playOk()
 
 void playWon()
 {
-    //TODO
+    Piezo.tone(1000, 100);
+    delay(100);
+    Piezo.tone(1500, 100);
+    delay(100);
+    Piezo.tone(2000, 300);
 }
 
 void playCancel()
